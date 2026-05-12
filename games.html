@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogos - RivardosPlay</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-icon">🎮</div>
+      <div>Rivardos<span>Play</span></div>
+    </div>
+
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a href="games.html" class="active">Jogos</a>
+      <a href="library.html">Biblioteca</a>
+      <a href="news.html">Notícias</a>
+    </nav>
+
+    <div class="mobile-menu">☰</div>
+
+    <div class="top-actions">
+      <a href="admin.html" class="btn btn-ghost" id="adminLink" style="display: none;">Admin</a>
+      <a href="login.html" class="btn btn-ghost" id="loginBtn">Login</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section-head">
+      <h1>Jogos</h1>
+      <p>Explore nossa seleção de jogos mais populares, lançamentos e títulos recomendados.</p>
+    </section>
+
+    <section id="games" class="games-grid">
+      <article class="game-card" data-name="Legends of Valor" data-category="rpg aventura">
+        <img src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=900&q=90" alt="Legends of Valor">
+        <button class="favorite">♡</button>
+        <div class="game-info">
+          <h3 class="game-title">Legends of Valor</h3>
+          <div class="meta">
+            <div class="tags"><span class="tag">RPG</span><span class="tag">Aventura</span></div>
+            <div class="rating"><span>★</span> 4.9</div>
+          </div>
+        </div>
+      </article>
+      <article class="game-card" data-name="Battle Arena" data-category="acao multiplayer">
+        <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=90" alt="Battle Arena">
+        <button class="favorite">♡</button>
+        <div class="game-info">
+          <h3 class="game-title">Battle Arena</h3>
+          <div class="meta">
+            <div class="tags"><span class="tag">Ação</span><span class="tag">Multijogador</span></div>
+            <div class="rating"><span>★</span> 4.7</div>
+          </div>
+        </div>
+      </article>
+      <article class="game-card" data-name="Speed Rush" data-category="corrida esportes">
+        <img src="https://images.unsplash.com/photo-1505682634904-d7c8d6309400?auto=format&fit=crop&w=900&q=90" alt="Speed Rush">
+        <button class="favorite">♡</button>
+        <div class="game-info">
+          <h3 class="game-title small">Speed Rush</h3>
+          <div class="meta">
+            <div class="tags"><span class="tag">Corrida</span><span class="tag">Esportes</span></div>
+            <div class="rating"><span>★</span> 4.8</div>
+          </div>
+        </div>
+      </article>
+      <article class="game-card" data-name="Shadow Quest" data-category="aventura quebra-cabeca">
+        <img src="https://images.unsplash.com/photo-1495567720989-cebdbdd97913?auto=format&fit=crop&w=900&q=90" alt="Shadow Quest">
+        <button class="favorite">♡</button>
+        <div class="game-info">
+          <h3 class="game-title small">Shadow Quest</h3>
+          <div class="meta">
+            <div class="tags"><span class="tag">Aventura</span><span class="tag">Quebra-Cabeça</span></div>
+            <div class="rating"><span>★</span> 4.6</div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

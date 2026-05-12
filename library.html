@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biblioteca - RivardosPlay</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-icon">🎮</div>
+      <div>Rivardos<span>Play</span></div>
+    </div>
+
+    <nav class="nav">
+      <a href="index.html">Início</a>
+      <a href="games.html">Jogos</a>
+      <a href="library.html" class="active">Biblioteca</a>
+      <a href="news.html">Notícias</a>
+    </nav>
+
+    <div class="mobile-menu">☰</div>
+
+    <div class="top-actions">
+      <a href="admin.html" class="btn btn-ghost" id="adminLink" style="display: none;">Admin</a>
+      <a href="login.html" class="btn btn-ghost" id="loginBtn">Login</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section-head">
+      <h1>Biblioteca</h1>
+      <p>Veja seus jogos salvos, conquistas recentes e próximos lançamentos.</p>
+    </section>
+
+    <section id="libraryGrid" class="games-grid"></section>
+    <div id="libraryEmptyMessage" class="empty-message">Nenhum jogo favoritado ainda. Vá até a aba Jogos e clique no ♥ para adicionar à sua biblioteca.</div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

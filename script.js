@@ -3,6 +3,8 @@
   const categories = [...document.querySelectorAll(".cat")];
   const shuffleBtn = document.getElementById("shuffleBtn");
   const grid = document.getElementById("gamesGrid");
+  const libraryGrid = document.getElementById("libraryGrid");
+  const libraryEmptyMessage = document.getElementById("libraryEmptyMessage");
   const userPanel = document.getElementById("userPanel");
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
@@ -26,8 +28,6 @@
   const editUsername = document.getElementById("editUsername");
   const editEmail = document.getElementById("editEmail");
   const editAvatar = document.getElementById("editAvatar");
-  const libraryGrid = document.getElementById("libraryGrid");
-  const libraryEmptyMessage = document.getElementById("libraryEmptyMessage");
 
   let currentUser = null;
   let allGames = [];
@@ -55,42 +55,38 @@
       return renderGameCard(game, isFav, isAdmin);
     }).join("");
 
-    grid.querySelectorAll(".favorite").forEach(btn => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        if (!currentUser) { alert("Faça login"); return; }
-        const card = btn.closest(".game-card");
-        const gameName = card?.dataset.name;
-        if (!gameName) return;
-        const adding = !btn.classList.contains("active");
-        await updateLibrary(gameName, adding ? "add" : "remove", btn);
-      };
-    });
+    attachCardEvents(grid);
+    if (isAdmin) attachAdminEvents(grid);
+  }
 
-    if (isAdmin) {
-      grid.querySelectorAll(".admin-edit").forEach(btn => {
-        btn.onclick = (e) => { e.stopPropagation(); openGameModal(btn.dataset.id); };
-      });
-      grid.querySelectorAll(".admin-delete").forEach(btn => {
-        btn.onclick = async (e) => {
-          e.stopPropagation();
-          if (!confirm("Excluir jogo?")) return;
-          await deleteGame(btn.dataset.id);
-        };
-      });
+  async function loadLibraryGames() {
+    if (!currentUser || !libraryGrid) return;
+    try {
+      const response = await fetch("/api/games");
+      if (!response.ok) throw new Error("Falha ao carregar jogos");
+      const allGamesData = await response.json();
+      const libraryNames = getLibraryNames();
+      const libraryGames = allGamesData.filter(g => libraryNames.includes(g.name));
+      renderLibraryGames(libraryGames);
+    } catch (error) {
+      console.error("Error loading library:", error);
+      if (libraryGrid) libraryGrid.innerHTML = "<p style='color:red;'>Erro ao carregar biblioteca.</p>";
+      if (libraryEmptyMessage) libraryEmptyMessage.style.display = "none";
     }
-    // Clique no card para abrir embed
-    grid.querySelectorAll(".game-card").forEach(card => {
-      card.addEventListener("click", (e) => {
-        if (e.target.closest(".favorite") || e.target.closest(".admin-edit") || e.target.closest(".admin-delete")) return;
-        const gameId = card.dataset.id;
-        const game = allGames.find(g => g.id == gameId || g.name === card.dataset.name);
-        if (game?.embed) {
-          openEmbedModal(game.embed, game.name);
-        }
-      });
-    });
+  }
 
+  function renderLibraryGames(games) {
+    if (!libraryGrid) return;
+
+    if (!games.length) {
+      libraryGrid.innerHTML = "";
+      if (libraryEmptyMessage) libraryEmptyMessage.style.display = "block";
+      return;
+    }
+
+    if (libraryEmptyMessage) libraryEmptyMessage.style.display = "none";
+    libraryGrid.innerHTML = games.map(game => renderGameCard(game, true, false)).join("");
+    attachCardEvents(libraryGrid);
   }
 
   function renderGameCard(game, isFavorite = false, showAdmin = false) {
@@ -100,7 +96,6 @@
         <button class="admin-delete btn btn-ghost" data-id="${game.id}" title="Excluir">🗑️</button>
       </div>
     ` : '';
-    const embedHtml = game.embed ? `<div class="game-embed" style="margin-top:0.5rem;">${game.embed}</div>` : '';
     return `
       <article class="game-card" data-id="${game.id}" data-name="${game.name}" data-category="${game.category || ''}">
         <img src="${game.image_url}" alt="${game.alt_text || game.name}">
@@ -112,10 +107,47 @@
             <div class="tags">${(game.tags || []).map(t => `<span class="tag">${t}</span>`).join("")}</div>
             <div class="rating"><span>★</span> ${game.rating || 0}</div>
           </div>
-          
         </div>
       </article>
     `;
+  }
+
+  function attachCardEvents(container) {
+    container.querySelectorAll(".favorite").forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!currentUser) { alert("Faça login"); return; }
+        const card = btn.closest(".game-card");
+        const gameName = card?.dataset.name;
+        if (!gameName) return;
+        const adding = !btn.classList.contains("active");
+        await updateLibrary(gameName, adding ? "add" : "remove", btn);
+      };
+    });
+
+    container.querySelectorAll(".game-card").forEach(card => {
+      card.addEventListener("click", (e) => {
+        if (e.target.closest(".favorite") || e.target.closest(".admin-edit") || e.target.closest(".admin-delete")) return;
+        const gameId = card.dataset.id;
+        const game = allGames.find(g => g.id == gameId || g.name === card.dataset.name);
+        if (game?.embed) {
+          openEmbedModal(game.embed, game.name);
+        }
+      });
+    });
+  }
+
+  function attachAdminEvents(container) {
+    container.querySelectorAll(".admin-edit").forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); openGameModal(btn.dataset.id); };
+    });
+    container.querySelectorAll(".admin-delete").forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm("Excluir jogo?")) return;
+        await deleteGame(btn.dataset.id);
+      };
+    });
   }
 
   function setupShuffle() {
@@ -126,12 +158,36 @@
     };
   }
 
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      const term = searchInput.value.toLowerCase().trim();
+      const filtered = allGames.filter(g => g.name.toLowerCase().includes(term));
+      renderGames(filtered);
+    });
+  }
+
+  if (categories.length) {
+    categories.forEach(cat => {
+      cat.addEventListener("click", () => {
+        categories.forEach(c => c.classList.remove("active"));
+        cat.classList.add("active");
+        const filter = cat.dataset.filter;
+        const filtered = filter === "all" ? allGames : allGames.filter(g => g.category && g.category.includes(filter));
+        renderGames(filtered);
+      });
+    });
+  }
+
   function getLibraryNames() {
     return currentUser && Array.isArray(currentUser.library) ? currentUser.library : [];
   }
 
   async function updateLibrary(gameName, action, button) {
-    if (!currentUser) { alert("Faça login para favoritar jogos"); return; }
+    if (!currentUser) {
+      alert("Faça login para favoritar jogos");
+      return;
+    }
+
     try {
       const response = await fetch("/api/user/library", {
         method: "PUT",
@@ -140,11 +196,17 @@
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao atualizar biblioteca");
+
       currentUser = data.user;
       localStorage.setItem("rivardosplay_user", JSON.stringify(currentUser));
       applyLibraryState();
-      renderLibraryPage();
-    } catch (error) { alert(error.message); }
+
+      if (window.location.pathname.endsWith("library.html") || window.location.pathname === "/library") {
+        loadLibraryGames();
+      }
+    } catch (error) {
+      alert(error.message);
+    }
   }
 
   function applyLibraryState() {
@@ -158,52 +220,6 @@
     });
     if (playerFavoritesDisplay) playerFavoritesDisplay.textContent = libraryNames.length;
   }
-
-  function renderLibraryPage() {
-    if (!libraryGrid) return;
-    const libraryNames = getLibraryNames();
-    if (!libraryNames.length) {
-      libraryGrid.innerHTML = "";
-      if (libraryEmptyMessage) libraryEmptyMessage.style.display = "block";
-      return;
-    }
-    if (libraryEmptyMessage) libraryEmptyMessage.style.display = "none";
-    libraryGrid.innerHTML = libraryNames.map(name => {
-      const game = allGames.find(g => g.name === name) || {
-        name, image_url: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=90",
-        alt_text: name, tags: ["Favorito"], rating: "—", category: ""
-      };
-      return renderGameCard(game, true);
-    }).join("");
-
-    libraryGrid.querySelectorAll(".favorite").forEach(btn => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        const card = btn.closest(".game-card");
-        const name = card?.dataset.name;
-        if (!name) return;
-        await updateLibrary(name, "remove", btn);
-      };
-    });
-  }
-
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      const term = searchInput.value.toLowerCase().trim();
-      const filtered = allGames.filter(g => g.name.toLowerCase().includes(term));
-      renderGames(filtered);
-    });
-  }
-
-  categories.forEach(cat => {
-    cat.addEventListener("click", () => {
-      categories.forEach(c => c.classList.remove("active"));
-      cat.classList.add("active");
-      const filter = cat.dataset.filter;
-      const filtered = filter === "all" ? allGames : allGames.filter(g => g.category && g.category.includes(filter));
-      renderGames(filtered);
-    });
-  });
 
   function checkUserSession() {
     const user = localStorage.getItem("rivardosplay_user");
@@ -227,7 +243,6 @@
     if (adminLink) adminLink.style.display = userData.role === "admin" ? "inline-flex" : "none";
 
     applyLibraryState();
-    renderLibraryPage();
 
     if (userPanel) userPanel.style.display = "flex";
     if (loginBtn) loginBtn.style.display = "none";
@@ -296,7 +311,7 @@
     });
   }
 
-  // ==================== MODAL ====================
+  // ==================== MODAL JOGO (ADMIN) ====================
 
   let gameModal = null;
 
@@ -351,46 +366,6 @@
     gameModal.addEventListener("click", (e) => { if (e.target === gameModal) closeGameModal(); });
   }
 
-
-  // Modal para exibir embed em tela cheia
-  let embedModal = null;
-
-  function createEmbedModal() {
-    if (embedModal) return;
-    embedModal = document.createElement('div');
-    embedModal.id = 'embedModal';
-    embedModal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2000;align-items:center;justify-content:center;';
-    embedModal.innerHTML = `
-      <div style="position:relative;width:95vw;height:95vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <button id="closeEmbedModal" style="position:absolute;top:10px;right:20px;background:none;border:none;color:white;font-size:3rem;cursor:pointer;z-index:10;">&times;</button>
-        <h2 id="embedGameName" style="color:white;margin-bottom:1rem;text-align:center;"></h2>
-        <div id="embedContainer" style="width:100%;height:calc(100% - 60px);display:flex;align-items:center;justify-content:center;overflow:auto;"></div>
-      </div>
-    `;
-    document.body.appendChild(embedModal);
-    document.getElementById('closeEmbedModal').onclick = closeEmbedModal;
-    embedModal.addEventListener('click', (e) => {
-      if (e.target === embedModal) closeEmbedModal();
-    });
-  }
-
-  function openEmbedModal(embedHtml, gameName) {
-    createEmbedModal();
-    const container = document.getElementById('embedContainer');
-    const title = document.getElementById('embedGameName');
-    title.textContent = gameName;
-    // Adicionar sandbox ao iframe para segurança
-    const sanitized = embedHtml.replace(/<iframe/gi, '<iframe sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"');
-    container.innerHTML = sanitized;
-    embedModal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeEmbedModal() {
-    if (embedModal) embedModal.style.display = 'none';
-    document.body.style.overflow = '';
-  }
-
   function openGameModal(gameId = null) {
     createGameModal();
     gameModal.style.display = "flex";
@@ -409,6 +384,7 @@
     } else {
       document.getElementById("gameForm").reset();
       document.getElementById("gameId").value = "";
+      document.getElementById("gameEmbed").value = "";
     }
   }
 
@@ -455,7 +431,44 @@
     } catch (error) { alert(error.message); }
   }
 
-  // ==================== ADMIN PAGE ====================
+  // ==================== MODAL EMBED ====================
+
+  let embedModal = null;
+
+  function createEmbedModal() {
+    if (embedModal) return;
+    embedModal = document.createElement("div");
+    embedModal.id = "embedModal";
+    embedModal.style.cssText = "display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2000;align-items:center;justify-content:center;";
+    embedModal.innerHTML = `
+      <div style="position:relative;width:95vw;height:95vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <button id="closeEmbedModal" style="position:absolute;top:10px;right:20px;background:none;border:none;color:white;font-size:3rem;cursor:pointer;z-index:10;">&times;</button>
+        <h2 id="embedGameName" style="color:white;margin-bottom:1rem;text-align:center;"></h2>
+        <div id="embedContainer" style="width:100%;height:calc(100% - 60px);display:flex;align-items:center;justify-content:center;overflow:auto;"></div>
+      </div>
+    `;
+    document.body.appendChild(embedModal);
+    document.getElementById("closeEmbedModal").onclick = closeEmbedModal;
+    embedModal.addEventListener("click", (e) => { if (e.target === embedModal) closeEmbedModal(); });
+  }
+
+  function openEmbedModal(embedHtml, gameName) {
+    createEmbedModal();
+    const container = document.getElementById("embedContainer");
+    const title = document.getElementById("embedGameName");
+    title.textContent = gameName;
+    const sanitized = embedHtml.replace(/<iframe/gi, '<iframe sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"');
+    container.innerHTML = sanitized;
+    embedModal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeEmbedModal() {
+    if (embedModal) embedModal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  // ==================== ADMIN ====================
 
   function renderAdminPage() {
     const usersSection = document.getElementById("usersAdminSection");
@@ -543,7 +556,7 @@
 
       container.innerHTML = html;
     } catch (error) {
-      container.innerHTML = `<p style="color:var(--muted)">Erro ao carregar jogos</p>`;
+      container.innerHTML = "<p style='color:var(--muted);'>Erro ao carregar jogos</p>";
     }
   }
 
@@ -635,21 +648,11 @@
   checkUserSession();
   loadGames();
 
-  // Se estiver na página admin, renderizar painel admin
-  if (window.location.pathname.endsWith('admin.html') || window.location.pathname === '/admin') {
+  if (window.location.pathname.endsWith("admin.html") || window.location.pathname === "/admin") {
     renderAdminPage();
   }
+
+  if (window.location.pathname.endsWith("library.html") || window.location.pathname === "/library") {
+    loadLibraryGames();
+  }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-

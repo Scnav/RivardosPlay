@@ -23,7 +23,26 @@
     <div class="mobile-menu">☰</div>
 
     <div class="top-actions">
+      <label class="search">
+        <input type="text" id="searchInput" placeholder="Buscar jogos..." />
+        <span>🔍</span>
+      </label>
+
       <a href="admin.html" class="btn btn-ghost" id="adminLink" style="display: none;">Admin</a>
+
+      <div class="bell">🔔</div>
+
+      <div class="user-panel" id="userPanel" style="display: none;">
+        <div class="user">
+          <div class="avatar" id="userAvatar">🛡️</div>
+          <div class="user-info-clickable" id="userInfoClickable">
+            <strong id="userName">PlayerOne</strong>
+            <small>Nível <span id="userLevel">24</span></small>
+          </div>
+        </div>
+        <button id="logoutBtn" title="Sair" style="background: none; border: none; font-size: 18px; cursor: pointer; margin-left: 8px;">🚪</button>
+      </div>
+
       <a href="login.html" class="btn btn-ghost" id="loginBtn">Login</a>
     </div>
   </header>

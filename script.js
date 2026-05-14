@@ -1,4 +1,4 @@
-ï»¿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('searchInput');
   const cards = [...document.querySelectorAll('.game-card')];
   const categories = [...document.querySelectorAll('.cat')];
@@ -48,7 +48,7 @@
       name: 'Battle Arena',
       img: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=90',
       alt: 'Battle Arena',
-      tags: ['AÃ§Ã£o', 'Multijogador'],
+      tags: ['Ação', 'Multijogador'],
       rating: '4.7',
       category: 'acao multiplayer'
     },
@@ -64,7 +64,7 @@
       name: 'Shadow Quest',
       img: 'https://images.unsplash.com/photo-1495567720989-cebdbdd97913?auto=format&fit=crop&w=900&q=90',
       alt: 'Shadow Quest',
-      tags: ['Aventura', 'Quebra-CabeÃ§a'],
+      tags: ['Aventura', 'Quebra-Cabeça'],
       rating: '4.6',
       category: 'aventura quebra-cabeca'
     }
@@ -78,12 +78,12 @@
     return `
       <article class="game-card" data-name="${game.name}" data-category="${game.category}">
         <img src="${game.img}" alt="${game.alt}">
-        <button class="favorite ${isFavorite ? 'active' : ''}">${isFavorite ? 'â™¥' : 'â™¡'}</button>
+        <button class="favorite ${isFavorite ? 'active' : ''}">${isFavorite ? '?' : '?'}</button>
         <div class="game-info">
           <h3 class="game-title">${game.name}</h3>
           <div class="meta">
             <div class="tags">${game.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
-            <div class="rating"><span>â˜…</span> ${game.rating}</div>
+            <div class="rating"><span>?</span> ${game.rating}</div>
           </div>
         </div>
       </article>
@@ -92,7 +92,7 @@
 
   async function updateLibrary(gameName, action, button) {
     if (!currentUser || !currentUser.email) {
-      alert('FaÃ§a login para favoritar jogos');
+      alert('Faça login para favoritar jogos');
       return;
     }
 
@@ -120,7 +120,7 @@
       applyLibraryState();
       renderLibraryPage();
     } catch (error) {
-      alert('Erro de conexÃ£o');
+      alert('Erro de conexão');
     }
   }
 
@@ -131,7 +131,7 @@
       const gameName = card ? card.dataset.name : null;
       const isFav = gameName && libraryNames.includes(gameName);
       button.classList.toggle('active', Boolean(isFav));
-      button.textContent = isFav ? 'â™¥' : 'â™¡';
+      button.textContent = isFav ? '?' : '?';
     });
 
     if (playerFavoritesDisplay) {
@@ -158,7 +158,7 @@
           img: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=90',
           alt: name,
           tags: ['Favorito'],
-          rating: 'â€”',
+          rating: '—',
           category: ''
         };
       })
@@ -232,7 +232,7 @@
   let currentUser = null;
 
   function getRandomAvatar() {
-    const avatars = ['ğŸ›¡ï¸', 'âš”ï¸', 'ğŸ¯', 'ğŸ', 'ğŸš©', 'ğŸ®', 'ğŸ’', 'ğŸ‘‘', 'ğŸª', 'ğŸš€', 'ğŸ‘¾', 'ğŸ‘»'];
+    const avatars = ['???', '??', '??', '??', '??', '??', '??', '??', '??', '??', '??', '??'];
     return avatars[Math.floor(Math.random() * avatars.length)];
   }
 
@@ -243,12 +243,12 @@
 
     if (userName) userName.textContent = userData.username;
     if (userLevel) userLevel.textContent = userData.level !== undefined ? userData.level : 0;
-    if (userAvatar) userAvatar.textContent = userData.avatar || 'ğŸ›¡ï¸';
+    if (userAvatar) userAvatar.textContent = userData.avatar || '???';
 
     if (playerUsernameDisplay) playerUsernameDisplay.textContent = userData.username;
     if (playerEmailDisplay) playerEmailDisplay.textContent = userData.email || 'user@example.com';
     if (playerLevelDisplay) playerLevelDisplay.textContent = userData.level !== undefined ? userData.level : 0;
-    if (playerAvatarDisplay) playerAvatarDisplay.textContent = userData.avatar || 'ğŸ›¡ï¸';
+    if (playerAvatarDisplay) playerAvatarDisplay.textContent = userData.avatar || '???';
     if (playerXpDisplay) playerXpDisplay.textContent = `${userData.xp || 0}/1500`;
     if (playerFavoritesDisplay) playerFavoritesDisplay.textContent = userData.favorites || 0;
     if (playerHoursDisplay) playerHoursDisplay.textContent = `${userData.hours_played || 0}h`;
@@ -263,8 +263,8 @@
       adminLink.style.display = userData.role === 'admin' ? 'inline-flex' : 'none';
     }
     if (editEmail) editEmail.value = userData.email || '';
-    if (editAvatar) editAvatar.value = userData.avatar || 'ğŸ›¡ï¸';
-    if (editFavorites) editFavorites.value = userData.favorites || 0;
+    if (editAvatar) editAvatar.value = userData.avatar || '???';
+
 
     applyLibraryState();
     renderLibraryPage();
@@ -283,7 +283,7 @@
       el.style.display = isEditing ? 'inline-block' : 'none';
     });
 
-    if (editPlayerInfoBtn) editPlayerInfoBtn.textContent = isEditing ? 'Salvar AlteraÃ§Ãµes' : 'Editar';
+    if (editPlayerInfoBtn) editPlayerInfoBtn.textContent = isEditing ? 'Salvar Alterações' : 'Editar';
     if (editLevel) {
       editLevel.disabled = isEditing;
       editLevel.style.display = 'none';
@@ -323,16 +323,16 @@
       const updatedUser = {
         email: currentUser.email,
         username: editUsername.value.trim(),
-        avatar: editAvatar ? editAvatar.value : 'ğŸ›¡ï¸'
+        avatar: editAvatar ? editAvatar.value : '???'
       };
 
       if (!updatedUser.username) {
-        alert('Nome de usuÃ¡rio Ã© obrigatÃ³rio');
+        alert('Nome de usuário é obrigatório');
         return;
       }
 
       if (!updatedUser.email || !updatedUser.email.includes('@')) {
-        alert('Email vÃ¡lido Ã© obrigatÃ³rio');
+        alert('Email válido é obrigatório');
         return;
       }
 
@@ -348,7 +348,7 @@
         const data = await response.json();
         
         if (!response.ok) {
-          alert(data.error || 'Erro ao salvar alteraÃ§Ãµes');
+          alert(data.error || 'Erro ao salvar alterações');
           return;
         }
 
@@ -363,7 +363,7 @@
           savePlayerInfoBtn.textContent = 'Salvar';
         }, 1000);
       } catch (error) {
-        alert('Erro de conexÃ£o');
+        alert('Erro de conexão');
       }
     });
   }
@@ -392,17 +392,17 @@
 
     if (!adminMessage || !adminUsersTable) return;
     if (!currentUser || currentUser.role !== 'admin') {
-      adminMessage.textContent = 'Apenas administradores podem acessar esta pÃ¡gina.';
+      adminMessage.textContent = 'Apenas administradores podem acessar esta página.';
       return;
     }
 
     async function loadAdminUsers() {
-      adminMessage.textContent = 'Carregando usuÃ¡rios...';
+      adminMessage.textContent = 'Carregando usuários...';
       try {
         const response = await fetch(`/api/admin/users?email=${encodeURIComponent(currentUser.email)}`);
         const data = await response.json();
         if (!response.ok) {
-          adminMessage.textContent = data.error || 'NÃ£o foi possÃ­vel carregar os usuÃ¡rios';
+          adminMessage.textContent = data.error || 'Não foi possível carregar os usuários';
           return;
         }
 
@@ -420,7 +420,7 @@
             <td>${user.hours_played || 0}</td>
             <td>${user.role}</td>
             <td>${user.created_at}</td>
-            <td>${user.role === 'admin' ? 'â€”' : `<button class="btn btn-ghost admin-delete" data-id="${user.id}">Apagar</button>`}</td>
+            <td>${user.role === 'admin' ? '—' : `<button class="btn btn-ghost admin-delete" data-id="${user.id}">Apagar</button>`}</td>
           `;
           adminUsersTable.appendChild(row);
         });
@@ -428,13 +428,13 @@
         adminUsersTable.querySelectorAll('.admin-delete').forEach(button => {
           button.addEventListener('click', async () => {
             const userId = button.dataset.id;
-            if (!confirm('Tem certeza que deseja excluir este usuÃ¡rio?')) return;
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
             const deleteResponse = await fetch(`/api/admin/users/${userId}?email=${encodeURIComponent(currentUser.email)}`, {
               method: 'DELETE'
             });
             const deleteData = await deleteResponse.json();
             if (!deleteResponse.ok) {
-              alert(deleteData.error || 'Erro ao excluir usuÃ¡rio');
+              alert(deleteData.error || 'Erro ao excluir usuário');
               return;
             }
             alert(deleteData.message);
@@ -442,7 +442,7 @@
           });
         });
       } catch (error) {
-        adminMessage.textContent = 'Erro de conexÃ£o';
+        adminMessage.textContent = 'Erro de conexão';
       }
     }
 
@@ -502,7 +502,7 @@
           if (loginMessage) loginMessage.textContent = data.error || 'Erro no login';
         }
       } catch (error) {
-        if (loginMessage) loginMessage.textContent = 'Erro de conexÃ£o';
+        if (loginMessage) loginMessage.textContent = 'Erro de conexão';
       }
     });
   }
@@ -530,7 +530,7 @@
       }
       
       if (password !== confirmPassword) {
-        if (registerMessage) registerMessage.textContent = 'As senhas nÃ£o coincidem';
+        if (registerMessage) registerMessage.textContent = 'As senhas não coincidem';
         return;
       }
       
@@ -561,7 +561,7 @@
           if (registerMessage) registerMessage.textContent = data.error || 'Erro no registro';
         }
       } catch (error) {
-        if (registerMessage) registerMessage.textContent = 'Erro de conexÃ£o';
+        if (registerMessage) registerMessage.textContent = 'Erro de conexão';
       }
     });
   }

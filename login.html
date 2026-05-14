@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -51,51 +51,5 @@
     </div>
   </main>
 
-  <script>
-    const loginForm = document.getElementById('loginForm');
-    const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : window.location.origin;
-
-    if (loginForm) {
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        const message = document.getElementById('loginMessage');
-        
-        try {
-          const response = await fetch(`${apiBase}/api/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          });
-        const data = await response.json();
-        if (response.ok) {
-          message.style.color = '#00ff00';
-          message.textContent = 'Login realizado com sucesso!';
-          localStorage.setItem('rivardosplay_user', JSON.stringify({
-            id: data.user.id,
-            username: data.user.username,
-            email: data.user.email,
-            level: data.user.level || 0,
-            avatar: data.user.avatar || '🛡️',
-            xp: data.user.xp || 0,
-            role: data.user.role || 'user',
-            favorites: data.user.favorites || 0,
-            hours_played: data.user.hours_played || 0
-          }));
-          setTimeout(() => {
-            window.location.href = 'index.html';
-          }, 1000);
-        } else {
-          message.style.color = '#ff4444';
-          message.textContent = data.error || 'Erro ao fazer login';
-        }
-      } catch (error) {
-        message.style.color = '#ff4444';
-        message.textContent = 'Erro de conexão';
-      }
-    });
-    }
-  </script>
 </body>
 </html>

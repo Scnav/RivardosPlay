@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -27,6 +27,8 @@
         <input type="text" id="searchInput" placeholder="Buscar jogos..." />
         <span>🔍</span>
       </label>
+
+      <a href="admin.html" class="btn btn-ghost" id="adminLink" style="display: none;">Admin</a>
 
       <div class="bell">🔔</div>
 
@@ -102,7 +104,6 @@
           </div>
         </div>
 
-      <a href="admin.html" class="btn btn-ghost" id="adminLink" style="display: none;">Admin</a>
       <a href="login.html" class="btn btn-ghost" id="loginBtn">Login</a>
     </div>
   </header>
@@ -154,64 +155,18 @@
         </div>
       </section>
 
-      <section id="games">
+            <section id="games">
         <div class="section-head">
           <h2 class="section-title"><span>🔥</span> Jogos em destaque</h2>
           <a href="#" class="view-all">VER TODOS ❯</a>
         </div>
 
         <div class="games-grid" id="gamesGrid">
-          <article class="game-card" data-name="Shadows of War" data-category="acao aventura">
-            <img src="https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=900&q=90" alt="Shadows of War">
-            <button class="favorite">♡</button>
-            <div class="game-info">
-              <h3 class="game-title small">Shadows of War</h3>
-              <div class="meta">
-                <div class="tags"><span class="tag">Ação</span><span class="tag">Aventura</span></div>
-                <div class="rating"><span>★</span> 4.8</div>
-              </div>
-            </div>
-          </article>
-
-          <article class="game-card" data-name="Eldryn Legacy" data-category="rpg aventura">
-            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=900&q=90" alt="Eldryn Legacy">
-            <button class="favorite">♡</button>
-            <div class="game-info">
-              <h3 class="game-title">Eldryn Legacy</h3>
-              <div class="meta">
-                <div class="tags"><span class="tag">RPG</span><span class="tag">Mundo Aberto</span></div>
-                <div class="rating"><span>★</span> 4.9</div>
-              </div>
-            </div>
-          </article>
-
-          <article class="game-card" data-name="Frontline Zero Hour" data-category="tiro acao">
-            <img src="https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=900&q=90" alt="Frontline Zero Hour">
-            <button class="favorite">♡</button>
-            <div class="game-info">
-              <h3 class="game-title small">Frontline <br>Zero Hour</h3>
-              <div class="meta">
-                <div class="tags"><span class="tag">Tiro</span><span class="tag">Multijogador</span></div>
-                <div class="rating"><span>★</span> 4.6</div>
-              </div>
-            </div>
-          </article>
-
-          <article class="game-card" data-name="Speed Ultimate" data-category="corrida">
-            <img src="https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=90" alt="Speed Ultimate">
-            <button class="favorite">♡</button>
-            <div class="game-info">
-              <h3 class="game-title small">Speed Ultimate</h3>
-              <div class="meta">
-                <div class="tags"><span class="tag">Corrida</span><span class="tag">Esportes</span></div>
-                <div class="rating"><span>★</span> 4.7</div>
-              </div>
-            </div>
-          </article>
-
-          <button class="side-arrow" id="shuffleBtn">›</button>
+          <!-- Games will be loaded dynamically -->
         </div>
-      </section>
+
+        <button class="side-arrow" id="shuffleBtn">›</button>
+      </section
 
       <section class="features">
         <div class="feature">
@@ -237,3 +192,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

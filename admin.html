@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -31,15 +31,26 @@
   <main class="container">
     <section class="section-head">
       <h1>Painel Administrativo</h1>
-      <p>Gerencie contas de usuários e ações administrativas exclusivas.</p>
+      <p>Gerencie contas de usuários, jogos e ações administrativas.</p>
     </section>
 
-    <section class="admin-panel">
-      <div id="adminMessage" class="admin-warning">Carregando...</div>
-      <div class="admin-actions">
-        <button id="refreshUsers" class="btn btn-primary">Atualizar lista</button>
+    <!-- Gerenciamento de Jogos -->
+    <section class="admin-panel" id="gamesAdminSection" style="display:none;">
+      <h2>🎮 Gerenciar Jogos</h2>
+      <div id="adminGamesMessage" class="admin-warning" style="margin-bottom:1rem;">Carregando...</div>
+      <div id="adminGamesList" style="margin-top:1rem;"></div>
+      <div class="admin-actions" style="margin-top:1rem;">
+        <button id="refreshGames" class="btn btn-primary">Atualizar Jogos</button>
       </div>
+    </section>
 
+    <!-- Gerenciamento de Usuários -->
+    <section class="admin-panel" id="usersAdminSection" style="display:none;">
+      <h2>👥 Gerenciar Usuários</h2>
+      <div id="adminUsersMessage" class="admin-warning" style="margin-bottom:1rem;">Carregando...</div>
+      <div class="admin-actions" style="margin-top:1rem;">
+        <button id="refreshUsers" class="btn btn-primary">Atualizar Lista</button>
+      </div>
       <div class="admin-table-wrapper">
         <table class="admin-table">
           <thead>
@@ -60,6 +71,10 @@
         </table>
       </div>
     </section>
+
+    <div id="noAdminAccess" class="admin-warning" style="display:none;">
+      Apenas administradores podem acessar esta página.
+    </div>
   </main>
 
   <script src="script.js"></script>

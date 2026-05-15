@@ -322,7 +322,7 @@
       localStorage.setItem("rivardosplay_user", JSON.stringify(currentUser));
       applyLibraryState();
 
-      if (window.location.pathname.endsWith("library.html") || window.location.pathname === "/library") {
+      if (window.location.pathname === "/library") {
         loadLibraryGames();
       }
     } catch (error) {
@@ -823,7 +823,7 @@
           localStorage.setItem("rivardosplay_user", JSON.stringify({ ...data.user, token: data.token }));
           document.getElementById("loginMessage").style.color = "#00ff00";
           document.getElementById("loginMessage").textContent = "Login realizado com sucesso!";
-          setTimeout(() => window.location.href = "index.html", 1000);
+          setTimeout(() => window.location.href = "/", 1000);
         } else {
           document.getElementById("loginMessage").style.color = "#ff4444";
           document.getElementById("loginMessage").textContent = data.error || "Erro no login";
@@ -865,7 +865,7 @@
         if (response.ok) {
           document.getElementById("registerMessage").style.color = "#00ff00";
           document.getElementById("registerMessage").textContent = "Conta criada com sucesso!";
-          setTimeout(() => window.location.href = "login.html", 1000);
+          setTimeout(() => window.location.href = "/login", 1000);
         } else {
           document.getElementById("registerMessage").style.color = "#ff4444";
           document.getElementById("registerMessage").textContent = data.error || "Erro no registro";
@@ -888,11 +888,11 @@
     }
   });
 
-  if (window.location.pathname.endsWith("admin.html") || window.location.pathname === "/admin") {
+  if (window.location.pathname === "/admin") {
     renderAdminPage();
   }
 
-  if (window.location.pathname.endsWith("library.html") || window.location.pathname === "/library") {
+  if (window.location.pathname === "/library") {
     loadLibraryGames();
   }
 });

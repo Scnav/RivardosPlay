@@ -149,41 +149,24 @@ const db = new sqlite3.Database('./rivardosplay.db', (err) => {
       });
       console.log('Tables created/verified');
 
-      // Criar admin
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@teste.com';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-      db.get('SELECT id FROM users WHERE email = ?', [adminEmail], (err, admin) => {
-        if (!admin) {
-          bcrypt.hash(adminPassword, 10, (err, hash) => {
-            db.run('INSERT INTO users (username, email, password, level, avatar, xp, role, favorites, hours_played, library) VALUES (?, ?, ?, 100, "👑", 0, "admin", 0, 0, ? )',
-              ['Admin', adminEmail, hash, JSON.stringify([])], function(err) {
-                if (!err) console.log(`✅ Admin created! Email: ${adminEmail}`);
-              });
+      // Inserir jogos iniciais
+      db.get('SELECT COUNT(*) as count FROM games', (err, row) => {
+        if (row.count === 0) {
+          const games = [
+            { name: 'Shadows of War', image_url: 'https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=900&q=90', alt_text: 'Shadows of War', tags: JSON.stringify(['Ação', 'Aventura']), rating: 4.8, category: 'acao aventura' },
+            { name: 'Eldryn Legacy', image_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=900&q=90', alt_text: 'Eldryn Legacy', tags: JSON.stringify(['RPG', 'Mundo Aberto']), rating: 4.9, category: 'rpg aventura' },
+            { name: 'Frontline Zero Hour', image_url: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=900&q=90', alt_text: 'Frontline Zero Hour', tags: JSON.stringify(['Tiro', 'Multijogador']), rating: 4.6, category: 'tiro acao' },
+            { name: 'Speed Ultimate', image_url: 'https://images.unsplash.com/photo-1505682634904-d7c8d6309400?auto=format&fit=crop&w=900&q=90', alt_text: 'Speed Ultimate', tags: JSON.stringify(['Corrida', 'Esportes']), rating: 4.7, category: 'corrida' }
+          ];
+
+          games.forEach(g => {
+            db.run('INSERT INTO games (name, image_url, alt_text, tags, rating, category, embed) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [g.name, g.image_url, g.alt_text, g.tags, g.rating, g.category]);
           });
+          console.log('✅ Initial games inserted');
         } else {
-          db.run("UPDATE users SET role = 'admin' WHERE email = ?", [adminEmail]);
-          console.log('✅ Admin exists');
+          console.log('✅ Games exist');
         }
-
-        // Inserir jogos iniciais
-        db.get('SELECT COUNT(*) as count FROM games', (err, row) => {
-          if (row.count === 0) {
-            const games = [
-              { name: 'Shadows of War', image_url: 'https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=900&q=90', alt_text: 'Shadows of War', tags: JSON.stringify(['Ação', 'Aventura']), rating: 4.8, category: 'acao aventura' },
-              { name: 'Eldryn Legacy', image_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=900&q=90', alt_text: 'Eldryn Legacy', tags: JSON.stringify(['RPG', 'Mundo Aberto']), rating: 4.9, category: 'rpg aventura' },
-              { name: 'Frontline Zero Hour', image_url: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?auto=format&fit=crop&w=900&q=90', alt_text: 'Frontline Zero Hour', tags: JSON.stringify(['Tiro', 'Multijogador']), rating: 4.6, category: 'tiro acao' },
-              { name: 'Speed Ultimate', image_url: 'https://images.unsplash.com/photo-1505682634904-d7c8d6309400?auto=format&fit=crop&w=900&q=90', alt_text: 'Speed Ultimate', tags: JSON.stringify(['Corrida', 'Esportes']), rating: 4.7, category: 'corrida' }
-            ];
-
-            games.forEach(g => {
-              db.run('INSERT INTO games (name, image_url, alt_text, tags, rating, category, embed) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [g.name, g.image_url, g.alt_text, g.tags, g.rating, g.category]);
-            });
-            console.log('✅ Initial games inserted');
-          } else {
-            console.log('✅ Games exist');
-          }
-        });
       });
     });
   });
@@ -263,14 +246,22 @@ app.post('/api/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    db.run('INSERT INTO users (username, email, password, level, avatar, xp, role, favorites, hours_played, library) VALUES (?, ?, ?, 0, "🛡️", 0, "user", 0, 0, ? )',
-      [username, email, hashedPassword, JSON.stringify([])], function(err) {
-        if (err) {
-          if (err.code === 'SQLITE_CONSTRAINT') return res.status(409).json({ error: 'Email ou username já cadastrado' });
-          return res.status(500).json({ error: 'Erro ao registrar usuário' });
-        }
-        res.status(201).json({ message: 'Usuário registrado com sucesso', userId: this.lastID });
-      });
+    db.get('SELECT COUNT(*) as total FROM users', [], (countErr, countRow) => {
+      if (countErr) return res.status(500).json({ error: 'Erro ao validar regra de primeiro usuário' });
+      const isFirstUser = (countRow?.total || 0) === 0;
+      const role = isFirstUser ? 'admin' : 'user';
+      const level = isFirstUser ? 100 : 0;
+      const avatar = isFirstUser ? '👑' : '🛡️';
+
+      db.run('INSERT INTO users (username, email, password, level, avatar, xp, role, favorites, hours_played, library) VALUES (?, ?, ?, ?, ?, 0, ?, 0, 0, ? )',
+        [username, email, hashedPassword, level, avatar, role, JSON.stringify([])], function(err) {
+          if (err) {
+            if (err.code === 'SQLITE_CONSTRAINT') return res.status(409).json({ error: 'Email ou username já cadastrado' });
+            return res.status(500).json({ error: 'Erro ao registrar usuário' });
+          }
+          res.status(201).json({ message: 'Usuário registrado com sucesso', userId: this.lastID, role });
+        });
+    });
   } catch (error) {
     res.status(500).json({ error: 'Erro no servidor' });
   }
@@ -668,6 +659,12 @@ app.get('/api/admin/game-stats', requireAuth, isAdmin, (req, res) => {
 });
 
 // ==================== HTML ROUTES ====================
+
+app.get('/*.html', (req, res, next) => {
+  const cleanPath = req.path.replace(/\.html$/i, '') || '/';
+  if (cleanPath === '/index') return res.redirect(301, '/');
+  return res.redirect(301, cleanPath);
+});
 
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });

@@ -13,30 +13,134 @@
   const userLevel = document.getElementById("userLevel");
   const userAvatar = document.getElementById("userAvatar");
   const userInfoClickable = document.getElementById("userInfoClickable");
-  const playerInfoPanel = document.getElementById("playerInfoPanel");
-  const closePlayerInfo = document.getElementById("closePlayerInfo");
-  const editPlayerInfoBtn = document.getElementById("editPlayerInfo");
-  const savePlayerInfoBtn = document.getElementById("savePlayerInfo");
-  const cancelEditPlayerInfoBtn = document.getElementById("cancelEditPlayerInfo");
-  const playerUsernameDisplay = document.getElementById("playerUsernameDisplay");
-  const playerEmailDisplay = document.getElementById("playerEmailDisplay");
-  const playerLevelDisplay = document.getElementById("playerLevelDisplay");
-  const playerAvatarDisplay = document.getElementById("playerAvatarDisplay");
-  const playerXpDisplay = document.getElementById("playerXpDisplay");
-  const playerFavoritesDisplay = document.getElementById("playerFavoritesDisplay");
-  const playerHoursDisplay = document.getElementById("playerHoursDisplay");
-  const editUsername = document.getElementById("editUsername");
-  const editEmail = document.getElementById("editEmail");
-  const editAvatar = document.getElementById("editAvatar");
+  let playerInfoPanel = document.getElementById("playerInfoPanel");
+  let closePlayerInfo = document.getElementById("closePlayerInfo");
+  let editPlayerInfoBtn = document.getElementById("editPlayerInfo");
+  let savePlayerInfoBtn = document.getElementById("savePlayerInfo");
+  let cancelEditPlayerInfoBtn = document.getElementById("cancelEditPlayerInfo");
+  let playerUsernameDisplay = document.getElementById("playerUsernameDisplay");
+  let playerEmailDisplay = document.getElementById("playerEmailDisplay");
+  let playerLevelDisplay = document.getElementById("playerLevelDisplay");
+  let playerAvatarDisplay = document.getElementById("playerAvatarDisplay");
+  let playerXpDisplay = document.getElementById("playerXpDisplay");
+  let playerFavoritesDisplay = document.getElementById("playerFavoritesDisplay");
+  let playerHoursDisplay = document.getElementById("playerHoursDisplay");
+  let editUsername = document.getElementById("editUsername");
+  let editEmail = document.getElementById("editEmail");
+  let editAvatar = document.getElementById("editAvatar");
 
   let currentUser = null;
   let allGames = [];
+  let activeGameSession = null;
+  let authToken = "";
+
+  function getAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    return headers;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function ensurePlayerInfoPanel() {
+    if (!userInfoClickable) return;
+    if (playerInfoPanel) return;
+
+    const panel = document.createElement("div");
+    panel.className = "player-info-panel";
+    panel.id = "playerInfoPanel";
+    panel.innerHTML = `
+      <div class="player-info-header">
+        <h3>Informações do Jogador</h3>
+        <div class="header-actions">
+          <button id="editPlayerInfo" class="edit-btn">Editar</button>
+          <button id="closePlayerInfo" class="close-btn">×</button>
+        </div>
+      </div>
+      <div class="player-info-content">
+        <div class="info-item">
+          <span class="info-label">Nome de Usuário:</span>
+          <span class="info-value display-value" id="playerUsernameDisplay"></span>
+          <input type="text" class="edit-input" id="editUsername" placeholder="Nome de usuário" />
+        </div>
+        <div class="info-item">
+          <span class="info-label">Email:</span>
+          <span class="info-value display-value" id="playerEmailDisplay"></span>
+          <input type="email" class="edit-input" id="editEmail" placeholder="Email" />
+        </div>
+        <div class="info-item">
+          <span class="info-label">Nível:</span>
+          <span class="info-value display-value" id="playerLevelDisplay"></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Avatar:</span>
+          <span class="info-value display-value" id="playerAvatarDisplay"></span>
+          <select class="edit-input" id="editAvatar">
+            <option value="🛡️">🛡️ Escudo</option>
+            <option value="⚔️">⚔️ Espada</option>
+            <option value="🎯">🎯 Alvo</option>
+            <option value="🏁">🏁 Bandeira</option>
+            <option value="🚩">🚩 Sinal</option>
+            <option value="🎮">🎮 Controle</option>
+            <option value="💎">💎 Diamante</option>
+            <option value="👑">👑 Coroa</option>
+            <option value="🎪">🎪 Palhaço</option>
+            <option value="🚀">🚀 Foguete</option>
+            <option value="👾">👾 Alienígena</option>
+            <option value="👻">👻 Fantasma</option>
+          </select>
+        </div>
+        <div class="info-item">
+          <span class="info-label">XP Atual:</span>
+          <span class="info-value display-value" id="playerXpDisplay">0/1500</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Jogos Favoritos:</span>
+          <span class="info-value display-value" id="playerFavoritesDisplay"></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Horas Jogadas:</span>
+          <span class="info-value display-value" id="playerHoursDisplay"></span>
+        </div>
+      </div>
+      <div class="player-info-footer">
+        <button id="savePlayerInfo" class="btn btn-primary">Salvar</button>
+        <button id="cancelEditPlayerInfo" class="btn btn-ghost">Cancelar</button>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    playerInfoPanel = document.getElementById("playerInfoPanel");
+    closePlayerInfo = document.getElementById("closePlayerInfo");
+    editPlayerInfoBtn = document.getElementById("editPlayerInfo");
+    savePlayerInfoBtn = document.getElementById("savePlayerInfo");
+    cancelEditPlayerInfoBtn = document.getElementById("cancelEditPlayerInfo");
+    playerUsernameDisplay = document.getElementById("playerUsernameDisplay");
+    playerEmailDisplay = document.getElementById("playerEmailDisplay");
+    playerLevelDisplay = document.getElementById("playerLevelDisplay");
+    playerAvatarDisplay = document.getElementById("playerAvatarDisplay");
+    playerXpDisplay = document.getElementById("playerXpDisplay");
+    playerFavoritesDisplay = document.getElementById("playerFavoritesDisplay");
+    playerHoursDisplay = document.getElementById("playerHoursDisplay");
+    editUsername = document.getElementById("editUsername");
+    editEmail = document.getElementById("editEmail");
+    editAvatar = document.getElementById("editAvatar");
+  }
 
   async function loadGames() {
     try {
       const response = await fetch("/api/games");
       if (!response.ok) throw new Error("Falha ao carregar jogos");
       allGames = await response.json();
+      updateCategoryCounts(allGames);
       renderGames(allGames);
       if (shuffleBtn) setupShuffle();
     } catch (error) {
@@ -90,6 +194,10 @@
   }
 
   function renderGameCard(game, isFavorite = false, showAdmin = false) {
+    const safeName = escapeHtml(game.name);
+    const safeImage = escapeHtml(game.image_url);
+    const safeAlt = escapeHtml(game.alt_text || game.name);
+    const safeCategory = escapeHtml(game.category || "");
     const adminControls = showAdmin ? `
       <div class="admin-controls">
         <button class="admin-edit btn btn-ghost" data-id="${game.id}" title="Editar">✏️</button>
@@ -97,14 +205,14 @@
       </div>
     ` : '';
     return `
-      <article class="game-card" data-id="${game.id}" data-name="${game.name}" data-category="${game.category || ''}">
-        <img src="${game.image_url}" alt="${game.alt_text || game.name}">
+      <article class="game-card" data-id="${game.id}" data-name="${safeName}" data-category="${safeCategory}">
+        <img src="${safeImage}" alt="${safeAlt}">
         <button class="favorite ${isFavorite ? "active" : ""}">${isFavorite ? "♥" : "♡"}</button>
         ${adminControls}
         <div class="game-info">
-          <h3 class="game-title">${game.name}</h3>
+          <h3 class="game-title">${safeName}</h3>
           <div class="meta">
-            <div class="tags">${(game.tags || []).map(t => `<span class="tag">${t}</span>`).join("")}</div>
+            <div class="tags">${(game.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
             <div class="rating"><span>★</span> ${game.rating || 0}</div>
           </div>
         </div>
@@ -178,6 +286,19 @@
     });
   }
 
+  function updateCategoryCounts(games) {
+    const counters = document.querySelectorAll("[data-count-for]");
+    if (!counters.length) return;
+
+    counters.forEach(counter => {
+      const filter = counter.dataset.countFor;
+      const amount = filter === "all"
+        ? games.length
+        : games.filter(g => (g.category || "").includes(filter)).length;
+      counter.textContent = `${amount} jogo${amount === 1 ? "" : "s"}`;
+    });
+  }
+
   function getLibraryNames() {
     return currentUser && Array.isArray(currentUser.library) ? currentUser.library : [];
   }
@@ -191,13 +312,13 @@
     try {
       const response = await fetch("/api/user/library", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.email, game: gameName, action })
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ game: gameName, action })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao atualizar biblioteca");
 
-      currentUser = data.user;
+      currentUser = { ...data.user, token: authToken };
       localStorage.setItem("rivardosplay_user", JSON.stringify(currentUser));
       applyLibraryState();
 
@@ -225,6 +346,7 @@
     const user = localStorage.getItem("rivardosplay_user");
     if (!user) return;
     const userData = JSON.parse(user);
+    authToken = userData.token || "";
     currentUser = { ...userData, library: Array.isArray(userData.library) ? userData.library : [] };
 
     if (userName) userName.textContent = userData.username;
@@ -256,6 +378,8 @@
     if (editPlayerInfoBtn) editPlayerInfoBtn.textContent = isEditingProfile ? "Salvar Alterações" : "Editar";
   }
 
+  ensurePlayerInfoPanel();
+
   if (userInfoClickable && playerInfoPanel) {
     userInfoClickable.addEventListener("click", () => {
       playerInfoPanel.classList.toggle("active");
@@ -282,17 +406,16 @@
   if (savePlayerInfoBtn) {
     savePlayerInfoBtn.addEventListener("click", async () => {
       if (!isEditingProfile || !editUsername || !editEmail) return;
-      const updatedUser = { email: currentUser.email, username: editUsername.value.trim(), avatar: editAvatar ? editAvatar.value : "🛡️" };
+      const updatedUser = { username: editUsername.value.trim(), avatar: editAvatar ? editAvatar.value : "🛡️" };
       if (!updatedUser.username) { alert("Nome de usuário é obrigatório"); return; }
-      if (!updatedUser.email || !updatedUser.email.includes("@")) { alert("Email válido é obrigatório"); return; }
 
       try {
-        const response = await fetch("/api/user/update", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedUser) });
+        const response = await fetch("/api/user/update", { method: "PUT", headers: getAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(updatedUser) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Erro ao salvar alterações");
 
-        localStorage.setItem("rivardosplay_user", JSON.stringify(data.user));
-        currentUser = data.user;
+        localStorage.setItem("rivardosplay_user", JSON.stringify({ ...data.user, token: authToken }));
+        currentUser = { ...data.user, token: authToken };
         checkUserSession();
         toggleEditMode();
         savePlayerInfoBtn.textContent = "Salvo!";
@@ -302,8 +425,10 @@
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
+    logoutBtn.addEventListener("click", async () => {
+      try { await fetch("/api/logout", { method: "POST", headers: getAuthHeaders() }); } catch {}
       localStorage.removeItem("rivardosplay_user");
+      authToken = "";
       if (userPanel) userPanel.style.display = "none";
       if (loginBtn) loginBtn.style.display = "inline-flex";
       if (playerInfoPanel) playerInfoPanel.classList.remove("active");
@@ -353,6 +478,13 @@
             <label style="display:block;margin-bottom:0.5rem;">Embed (iframe/código HTML)</label>
             <textarea id="gameEmbed" rows="3" placeholder="<iframe src=&quot;...&quot;></iframe>" style="width:100%;padding:0.5rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:6px;resize:vertical;min-height:80px;"></textarea>
           </div>
+          <div style="margin-bottom:1rem;padding:0.75rem;border:1px dashed var(--border);border-radius:8px;">
+            <label style="display:block;margin-bottom:0.5rem;">Importar jogos em massa (RSS JSON URL)</label>
+            <input type="url" id="rssFeedUrl" placeholder="https://.../rss-feed.json" style="width:100%;padding:0.5rem;background:var(--bg-input);border:1px solid var(--border);color:var(--text);border-radius:6px;">
+            <div style="margin-top:0.6rem;display:flex;justify-content:flex-end;">
+              <button type="button" id="importRssBtn" class="btn btn-ghost">Importar RSS em massa</button>
+            </div>
+          </div>
           <div style="display:flex;gap:1rem;justify-content:flex-end;">
             <button type="button" id="cancelGame" class="btn btn-ghost">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar</button>
@@ -363,6 +495,7 @@
     document.body.appendChild(gameModal);
     document.getElementById("cancelGame").onclick = closeGameModal;
     document.getElementById("gameForm").onsubmit = async (e) => { e.preventDefault(); await saveGame(); };
+    document.getElementById("importRssBtn").onclick = async () => { await importGamesFromRss(); };
     gameModal.addEventListener("click", (e) => { if (e.target === gameModal) closeGameModal(); });
   }
 
@@ -401,28 +534,55 @@
     const embed = document.getElementById("gameEmbed").value.trim();
     try { image_url = encodeURI(image_url); } catch (e) {}
 
-    const email = currentUser?.email || "";
-    const query = email ? `?email=${encodeURIComponent(email)}` : "";
-
     try {
-      const response = await fetch(id ? `/api/games/${id}${query}` : `/api/games${query}`, {
+      const response = await fetch(id ? `/api/games/${id}` : `/api/games`, {
         method: id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ name, image_url, alt_text, tags, rating, category, embed })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao salvar jogo");
       closeGameModal();
+      alert("Jogo salvo com sucesso!");
+      location.reload();
+    } catch (error) { alert(error.message); }
+  }
+
+  async function importGamesFromRss() {
+    if (!currentUser) {
+      alert("Faça login como admin");
+      return;
+    }
+
+    const rssField = document.getElementById("rssFeedUrl");
+    const feed_url = rssField?.value?.trim();
+    if (!feed_url) {
+      alert("Informe a URL do feed RSS JSON");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/import-rss", {
+        method: "POST",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ feed_url })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao importar feed");
+
+      alert(`Importação concluída: ${data.imported} importados, ${data.skipped} ignorados, ${data.failed} falhas.`);
       await loadGames();
       await loadAdminGames?.();
-      alert("Jogo salvo com sucesso!");
-    } catch (error) { alert(error.message); }
+      await loadAdminGameStats?.();
+    } catch (error) {
+      alert(error.message);
+    }
   }
 
   async function deleteGame(gameId) {
     if (!currentUser) return;
     try {
-      const response = await fetch(`/api/games/${gameId}?email=${encodeURIComponent(currentUser.email)}`, { method: "DELETE" });
+      const response = await fetch(`/api/games/${gameId}`, { method: "DELETE", headers: getAuthHeaders() });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao excluir jogo");
       await loadGames();
@@ -461,11 +621,47 @@
     container.innerHTML = sanitized;
     embedModal.style.display = "flex";
     document.body.style.overflow = "hidden";
+    const game = allGames.find(g => g.name === gameName);
+    if (currentUser && game?.id) {
+      activeGameSession = {
+        gameId: game.id,
+        startedAt: Date.now(),
+        sent: false
+      };
+    }
   }
 
-  function closeEmbedModal() {
+  async function closeEmbedModal() {
+    await persistActiveGameSession();
     if (embedModal) embedModal.style.display = "none";
+    const container = document.getElementById("embedContainer");
+    if (container) container.innerHTML = "";
     document.body.style.overflow = "";
+  }
+
+  async function persistActiveGameSession() {
+    if (!currentUser || !activeGameSession || activeGameSession.sent) return;
+    const elapsedSeconds = Math.floor((Date.now() - activeGameSession.startedAt) / 1000);
+    if (elapsedSeconds < 5) {
+      activeGameSession = null;
+      return;
+    }
+
+    activeGameSession.sent = true;
+    try {
+      await fetch("/api/user/game-session", {
+        method: "POST",
+        headers: getAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          gameId: activeGameSession.gameId,
+          seconds: elapsedSeconds
+        })
+      });
+    } catch (error) {
+      console.error("Erro ao salvar sessão de jogo", error);
+    } finally {
+      activeGameSession = null;
+    }
   }
 
   // ==================== ADMIN ====================
@@ -485,25 +681,28 @@
 
     usersSection.style.display = "block";
     gamesSection.style.display = "block";
+    const statsSection = document.getElementById("statsAdminSection");
+    if (statsSection) statsSection.style.display = "block";
     noAccess.style.display = "none";
 
     loadAdminUsers();
     loadAdminGames();
+    loadAdminGameStats();
   }
 
   async function loadAdminUsers() {
     const tbody = document.getElementById("adminUsersTable");
     if (!tbody) return;
     try {
-      const response = await fetch(`/api/admin/users?email=${encodeURIComponent(currentUser.email)}`);
+      const response = await fetch("/api/admin/users", { headers: getAuthHeaders() });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao carregar usuários");
 
       tbody.innerHTML = data.map(u => `
         <tr>
-          <td>${u.id}</td><td>${u.username}</td><td>${u.email}</td><td>${u.level}</td>
+          <td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.email)}</td><td>${u.level}</td>
           <td>${u.xp}</td><td>${u.favorites || 0}</td><td>${u.hours_played || 0}</td>
-          <td>${u.role}</td><td>${u.created_at}</td>
+          <td>${escapeHtml(u.role)}</td><td>${escapeHtml(u.created_at)}</td>
           <td>${u.role === "admin" ? "—" : `<button class="btn btn-ghost admin-delete-user" data-id="${u.id}">Apagar</button>`}</td>
         </tr>
       `).join("");
@@ -511,7 +710,7 @@
       tbody.querySelectorAll(".admin-delete-user").forEach(btn => {
         btn.onclick = async () => {
           if (!confirm("Excluir usuário?")) return;
-          const res = await fetch(`/api/admin/users/${btn.dataset.id}?email=${encodeURIComponent(currentUser.email)}`, { method: "DELETE" });
+          const res = await fetch(`/api/admin/users/${btn.dataset.id}`, { method: "DELETE", headers: getAuthHeaders() });
           const json = await res.json();
           if (!res.ok) alert(json.error || "Erro");
           else { alert(json.message); loadAdminUsers(); }
@@ -530,10 +729,10 @@
 
       let html = data.map(g => `
         <div class="admin-game-item" style="display:flex;align-items:center;gap:1rem;padding:0.5rem;background:var(--bg-card);margin-bottom:0.5rem;border-radius:8px;">
-          <img src="${g.image_url}" alt="${g.alt_text}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+          <img src="${escapeHtml(g.image_url)}" alt="${escapeHtml(g.alt_text)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
           <div style="flex:1;">
-            <strong style="font-size:1.1rem;">${g.name}</strong><br>
-            <small>${(g.tags || []).join(", ")}</small>
+            <strong style="font-size:1.1rem;">${escapeHtml(g.name)}</strong><br>
+            <small>${escapeHtml((g.tags || []).join(", "))}</small>
           </div>
           <div style="display:flex;gap:0.5rem;">
             <button class="btn btn-primary" onclick="window.openGameModal(${g.id})" style="padding:0.5rem 1rem;">✏️ Editar</button>
@@ -560,15 +759,50 @@
     }
   }
 
+  function formatDuration(seconds) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    return `${hours}h ${minutes}min`;
+  }
+
+  async function loadAdminGameStats() {
+    const tbody = document.getElementById("adminGameStatsTable");
+    const message = document.getElementById("adminStatsMessage");
+    if (!tbody) return;
+
+    try {
+      const response = await fetch("/api/admin/game-stats", { headers: getAuthHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro ao carregar estatísticas");
+
+      tbody.innerHTML = data.map(row => `
+        <tr>
+          <td>${escapeHtml(row.game_name)}</td>
+          <td>${formatDuration(row.total_seconds)}</td>
+          <td>${formatDuration(row.avg_seconds_per_user)}</td>
+          <td>${row.unique_players}</td>
+        </tr>
+      `).join("");
+      if (message) message.textContent = "Estatísticas carregadas";
+    } catch (error) {
+      if (message) message.textContent = error.message;
+      tbody.innerHTML = "";
+    }
+  }
+
   window.openGameModal = openGameModal;
   window.deleteGame = deleteGame;
   window.loadAdminUsers = loadAdminUsers;
   window.loadAdminGames = loadAdminGames;
+  window.loadAdminGameStats = loadAdminGameStats;
 
   const refreshUsersBtn = document.getElementById("refreshUsers");
   if (refreshUsersBtn) refreshUsersBtn.addEventListener("click", loadAdminUsers);
   const refreshGamesBtn = document.getElementById("refreshGames");
   if (refreshGamesBtn) refreshGamesBtn.addEventListener("click", loadAdminGames);
+  const refreshStatsBtn = document.getElementById("refreshStats");
+  if (refreshStatsBtn) refreshStatsBtn.addEventListener("click", loadAdminGameStats);
 
   // ==================== LOGIN ====================
 
@@ -586,7 +820,7 @@
         const response = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
         const data = await response.json();
         if (response.ok) {
-          localStorage.setItem("rivardosplay_user", JSON.stringify(data.user));
+          localStorage.setItem("rivardosplay_user", JSON.stringify({ ...data.user, token: data.token }));
           document.getElementById("loginMessage").style.color = "#00ff00";
           document.getElementById("loginMessage").textContent = "Login realizado com sucesso!";
           setTimeout(() => window.location.href = "index.html", 1000);
@@ -647,6 +881,12 @@
 
   checkUserSession();
   loadGames();
+  window.addEventListener("beforeunload", persistActiveGameSession);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      persistActiveGameSession();
+    }
+  });
 
   if (window.location.pathname.endsWith("admin.html") || window.location.pathname === "/admin") {
     renderAdminPage();

@@ -17,7 +17,6 @@
       <a href="index.html">Início</a>
       <a href="games.html">Jogos</a>
       <a href="library.html">Biblioteca</a>
-      <a href="news.html">Notícias</a>
       <a href="admin.html" class="active">Admin</a>
     </nav>
 
@@ -32,6 +31,27 @@
     <section class="section-head">
       <h1>Painel Administrativo</h1>
       <p>Gerencie contas de usuários, jogos e ações administrativas.</p>
+    </section>
+
+    <section class="admin-panel" id="statsAdminSection" style="display:none;">
+      <h2>⏱️ Tempo Médio por Jogo</h2>
+      <div id="adminStatsMessage" class="admin-warning" style="margin-bottom:1rem;">Carregando...</div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Jogo</th>
+              <th>Total (todos usuários)</th>
+              <th>Média por usuário</th>
+              <th>Usuários que jogaram</th>
+            </tr>
+          </thead>
+          <tbody id="adminGameStatsTable"></tbody>
+        </table>
+      </div>
+      <div class="admin-actions" style="margin-top:1rem;">
+        <button id="refreshStats" class="btn btn-primary">Atualizar Estatísticas</button>
+      </div>
     </section>
 
     <!-- Gerenciamento de Jogos -->

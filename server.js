@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const { URL } = require('url');
 
 const app = express();
@@ -11,6 +12,13 @@ const PORT = process.env.PORT || 3000;
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const sessions = new Map();
 const authRateLimit = new Map();
+
+function auditSessionEvent(payload) {
+  try {
+    const line = `${new Date().toISOString()} ${JSON.stringify(payload)}\n`;
+    fs.appendFileSync(path.join(__dirname, 'session-audit.log'), line, 'utf8');
+  } catch {}
+}
 
 app.disable('x-powered-by');
 app.use(cors({ origin: false }));
@@ -32,6 +40,10 @@ app.use(express.static(path.join(__dirname), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       res.setHeader('Cache-Control', 'no-cache');
       return;
     }
@@ -129,6 +141,18 @@ const db = new sqlite3.Database('./rivardosplay.db', (err) => {
       FOREIGN KEY(game_id) REFERENCES games(id)
     )
   `;
+  const createGuestGameSessionsTable = `
+    CREATE TABLE IF NOT EXISTS guest_game_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visitor_id TEXT NOT NULL,
+      game_id INTEGER NOT NULL,
+      total_seconds INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(visitor_id, game_id),
+      FOREIGN KEY(game_id) REFERENCES games(id)
+    )
+  `;
 
   db.run(createUsersTable, err => {
     if (err) {
@@ -146,6 +170,12 @@ const db = new sqlite3.Database('./rivardosplay.db', (err) => {
           console.error('Error creating game_sessions table:', err);
           return;
         }
+        db.run(createGuestGameSessionsTable, guestErr => {
+          if (guestErr) {
+            console.error('Error creating guest_game_sessions table:', guestErr);
+            return;
+          }
+        });
       });
       console.log('Tables created/verified');
 
@@ -211,6 +241,24 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function optionalAuth(req, _res, next) {
+  const token = getSessionToken(req);
+  if (!token) {
+    req.authUser = null;
+    return next();
+  }
+  const session = sessions.get(token);
+  if (!session || Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    req.authUser = null;
+    return next();
+  }
+  session.expiresAt = Date.now() + SESSION_TTL_MS;
+  req.authUser = session;
+  req.authToken = token;
+  next();
+}
+
 function limiterKey(req) {
   return `${req.ip}:${req.path}`;
 }
@@ -236,35 +284,8 @@ function checkRateLimit(req, res, maxAttempts, windowMs) {
 
 // ==================== AUTH ====================
 
-app.post('/api/register', async (req, res) => {
-  if (!checkRateLimit(req, res, 20, 10 * 60 * 1000)) return;
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-  if (String(username).length < 3 || String(username).length > 32) return res.status(400).json({ error: 'Username deve ter entre 3 e 32 caracteres' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) return res.status(400).json({ error: 'Email inválido' });
-  if (String(password).length < 8 || String(password).length > 128) return res.status(400).json({ error: 'Senha deve ter entre 8 e 128 caracteres' });
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    db.get('SELECT COUNT(*) as total FROM users', [], (countErr, countRow) => {
-      if (countErr) return res.status(500).json({ error: 'Erro ao validar regra de primeiro usuário' });
-      const isFirstUser = (countRow?.total || 0) === 0;
-      const role = isFirstUser ? 'admin' : 'user';
-      const level = isFirstUser ? 100 : 0;
-      const avatar = isFirstUser ? '👑' : '🛡️';
-
-      db.run('INSERT INTO users (username, email, password, level, avatar, xp, role, favorites, hours_played, library) VALUES (?, ?, ?, ?, ?, 0, ?, 0, 0, ? )',
-        [username, email, hashedPassword, level, avatar, role, JSON.stringify([])], function(err) {
-          if (err) {
-            if (err.code === 'SQLITE_CONSTRAINT') return res.status(409).json({ error: 'Email ou username já cadastrado' });
-            return res.status(500).json({ error: 'Erro ao registrar usuário' });
-          }
-          res.status(201).json({ message: 'Usuário registrado com sucesso', userId: this.lastID, role });
-        });
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro no servidor' });
-  }
+app.post('/api/register', (req, res) => {
+  res.status(403).json({ error: 'Registro desabilitado. Contate um administrador.' });
 });
 
 app.post('/api/login', (req, res) => {
@@ -332,6 +353,33 @@ app.get('/api/games', (req, res) => {
 app.post('/api/logout', requireAuth, (req, res) => {
   sessions.delete(req.authToken);
   res.json({ message: 'Logout efetuado' });
+});
+
+app.get('/api/session', requireAuth, (req, res) => {
+  const email = req.authUser.email;
+  db.get(
+    'SELECT id, username, email, level, avatar, xp, role, favorites, hours_played, library FROM users WHERE email = ?',
+    [email],
+    (err, user) => {
+      if (err || !user) return res.status(err ? 500 : 404).json({ error: err ? 'Erro no servidor' : 'Usuário não encontrado' });
+      let library = [];
+      try { library = user.library ? JSON.parse(user.library) : []; } catch (e) { library = []; }
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          level: user.level,
+          avatar: user.avatar,
+          xp: user.xp,
+          role: user.role || 'user',
+          favorites: user.favorites || 0,
+          hours_played: user.hours_played || 0,
+          library
+        }
+      });
+    }
+  );
 });
 
 app.get('/api/games/:id', (req, res) => {
@@ -599,34 +647,70 @@ app.post('/api/admin/import-rss', requireAuth, isAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/user/game-session', requireAuth, (req, res) => {
-  const email = req.authUser.email;
-  const { gameId, seconds } = req.body;
+app.post('/api/user/game-session', optionalAuth, (req, res) => {
+  const email = req.authUser?.email || '';
+  const { gameId, seconds, visitorId } = req.body;
   const playedSeconds = Math.max(0, parseInt(seconds, 10) || 0);
   const parsedGameId = parseInt(gameId, 10);
+  const normalizedVisitorId = String(visitorId || '').trim();
 
-  if (!email || !parsedGameId || playedSeconds <= 0) {
-    return res.status(400).json({ error: 'Email, gameId e seconds válidos são obrigatórios' });
+  if (!parsedGameId || playedSeconds <= 0) {
+    auditSessionEvent({ stage: 'reject_invalid_input', email, gameId, seconds, visitorId });
+    return res.status(400).json({ error: 'gameId e seconds válidos são obrigatórios' });
   }
 
-  db.get('SELECT id FROM users WHERE email = ?', [email], (userErr, userRow) => {
-    if (userErr || !userRow) return res.status(userErr ? 500 : 404).json({ error: userErr ? 'Erro no servidor' : 'Usuário não encontrado' });
-
-    db.get('SELECT id FROM games WHERE id = ?', [parsedGameId], (gameErr, gameRow) => {
-      if (gameErr || !gameRow) return res.status(gameErr ? 500 : 404).json({ error: gameErr ? 'Erro no servidor' : 'Jogo não encontrado' });
-
-      db.run(
-        `INSERT INTO game_sessions (user_id, game_id, total_seconds, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-         ON CONFLICT(user_id, game_id)
-         DO UPDATE SET total_seconds = total_seconds + excluded.total_seconds, updated_at = CURRENT_TIMESTAMP`,
-        [userRow.id, parsedGameId, playedSeconds],
-        function (saveErr) {
-          if (saveErr) return res.status(500).json({ error: 'Erro ao registrar sessão do jogo' });
-          return res.json({ message: 'Sessão registrada com sucesso' });
+  db.get('SELECT id FROM games WHERE id = ?', [parsedGameId], (gameErr, gameRow) => {
+    if (gameErr || !gameRow) {
+      auditSessionEvent({ stage: 'reject_game_not_found', gameId: parsedGameId, gameErr: gameErr?.message || null });
+      return res.status(gameErr ? 500 : 404).json({ error: gameErr ? 'Erro no servidor' : 'Jogo não encontrado' });
+    }
+    if (email) {
+      db.get('SELECT id FROM users WHERE email = ?', [email], (userErr, userRow) => {
+        if (userErr || !userRow) {
+          auditSessionEvent({ stage: 'reject_user_not_found', email, userErr: userErr?.message || null });
+          return res.status(userErr ? 500 : 404).json({ error: userErr ? 'Erro no servidor' : 'Usuário não encontrado' });
         }
-      );
-    });
+        db.run(
+          `INSERT INTO game_sessions (user_id, game_id, total_seconds, updated_at)
+           VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+           ON CONFLICT(user_id, game_id)
+           DO UPDATE SET total_seconds = total_seconds + excluded.total_seconds, updated_at = CURRENT_TIMESTAMP`,
+          [userRow.id, parsedGameId, playedSeconds],
+          function (saveErr) {
+            if (saveErr) {
+              auditSessionEvent({ stage: 'save_user_error', email, userId: userRow.id, gameId: parsedGameId, playedSeconds, saveErr: saveErr.message });
+              return res.status(500).json({ error: 'Erro ao registrar sessão do jogo' });
+            }
+            auditSessionEvent({ stage: 'save_user_ok', email, userId: userRow.id, gameId: parsedGameId, playedSeconds });
+            invalidateCache(['admin:game-stats']);
+            return res.json({ message: 'Sessão registrada com sucesso' });
+          }
+        );
+      });
+      return;
+    }
+
+    let safeVisitorId = normalizedVisitorId;
+    if (!safeVisitorId || safeVisitorId.length < 8 || safeVisitorId.length > 128) {
+      const fingerprint = `${req.ip || 'ip'}|${req.headers['user-agent'] || 'ua'}`;
+      safeVisitorId = `auto_${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 24)}`;
+    }
+    db.run(
+      `INSERT INTO guest_game_sessions (visitor_id, game_id, total_seconds, updated_at)
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(visitor_id, game_id)
+       DO UPDATE SET total_seconds = total_seconds + excluded.total_seconds, updated_at = CURRENT_TIMESTAMP`,
+      [safeVisitorId, parsedGameId, playedSeconds],
+      function (saveErr) {
+        if (saveErr) {
+          auditSessionEvent({ stage: 'save_guest_error', visitorId: safeVisitorId, gameId: parsedGameId, playedSeconds, saveErr: saveErr.message });
+          return res.status(500).json({ error: 'Erro ao registrar sessão anônima do jogo' });
+        }
+        auditSessionEvent({ stage: 'save_guest_ok', visitorId: safeVisitorId, gameId: parsedGameId, playedSeconds });
+        invalidateCache(['admin:game-stats']);
+        return res.json({ message: 'Sessão registrada com sucesso' });
+      }
+    );
   });
 });
 
@@ -639,14 +723,20 @@ app.get('/api/admin/game-stats', requireAuth, isAdmin, (req, res) => {
     SELECT
       g.id AS game_id,
       g.name AS game_name,
-      COALESCE(SUM(gs.total_seconds), 0) AS total_seconds,
-      COUNT(DISTINCT gs.user_id) AS unique_players,
+      COALESCE(SUM(s.total_seconds), 0) AS total_seconds,
+      COUNT(DISTINCT s.player_key) AS unique_players,
       CASE
-        WHEN COUNT(DISTINCT gs.user_id) = 0 THEN 0
-        ELSE ROUND((SUM(gs.total_seconds) * 1.0) / COUNT(DISTINCT gs.user_id), 2)
+        WHEN COUNT(DISTINCT s.player_key) = 0 THEN 0
+        ELSE ROUND((SUM(s.total_seconds) * 1.0) / COUNT(DISTINCT s.player_key), 2)
       END AS avg_seconds_per_user
     FROM games g
-    LEFT JOIN game_sessions gs ON gs.game_id = g.id
+    LEFT JOIN (
+      SELECT game_id, total_seconds, 'u:' || CAST(user_id AS TEXT) AS player_key
+      FROM game_sessions
+      UNION ALL
+      SELECT game_id, total_seconds, 'v:' || visitor_id AS player_key
+      FROM guest_game_sessions
+    ) s ON s.game_id = g.id
     GROUP BY g.id, g.name
     ORDER BY total_seconds DESC, g.name ASC
   `;
@@ -670,7 +760,7 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }
 app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/login', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
 app.get('/login.html', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
-app.get('/register', (req, res) => { res.sendFile(path.join(__dirname, 'register.html')); });
+app.get('/register', (req, res) => { res.redirect('/login'); });
 app.get('/register.html', (req, res) => { res.sendFile(path.join(__dirname, 'register.html')); });
 app.get('/games', (req, res) => { res.sendFile(path.join(__dirname, 'games.html')); });
 app.get('/library', (req, res) => { res.sendFile(path.join(__dirname, 'library.html')); });

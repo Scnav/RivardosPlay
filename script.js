@@ -6,7 +6,6 @@
   const libraryGrid = document.getElementById("libraryGrid");
   const libraryEmptyMessage = document.getElementById("libraryEmptyMessage");
   const userPanel = document.getElementById("userPanel");
-  const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const adminLink = document.getElementById("adminLink");
   const userName = document.getElementById("userName");
@@ -367,7 +366,6 @@
     applyLibraryState();
 
     if (userPanel) userPanel.style.display = "flex";
-    if (loginBtn) loginBtn.style.display = "none";
   }
 
   let isEditingProfile = false;
@@ -430,7 +428,6 @@
       localStorage.removeItem("rivardosplay_user");
       authToken = "";
       if (userPanel) userPanel.style.display = "none";
-      if (loginBtn) loginBtn.style.display = "inline-flex";
       if (playerInfoPanel) playerInfoPanel.classList.remove("active");
       location.reload();
     });
@@ -835,47 +832,6 @@
     });
   }
 
-  // ==================== REGISTRO ====================
-
-  const registerForm = document.getElementById("registerForm");
-  if (registerForm) {
-    registerForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const username = document.getElementById("regUsername").value.trim();
-      const email = document.getElementById("regEmail").value.trim();
-      const password = document.getElementById("regPassword").value;
-      const confirmPassword = document.getElementById("regConfirmPassword").value;
-
-      if (!username || !email || !password || !confirmPassword) {
-        document.getElementById("registerMessage").textContent = "Preencha todos os campos";
-        return;
-      }
-      if (password !== confirmPassword) {
-        document.getElementById("registerMessage").textContent = "As senhas não coincidem";
-        return;
-      }
-      if (password.length < 6) {
-        document.getElementById("registerMessage").textContent = "A senha deve ter pelo menos 6 caracteres";
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, email, password }) });
-        const data = await response.json();
-        if (response.ok) {
-          document.getElementById("registerMessage").style.color = "#00ff00";
-          document.getElementById("registerMessage").textContent = "Conta criada com sucesso!";
-          setTimeout(() => window.location.href = "/login", 1000);
-        } else {
-          document.getElementById("registerMessage").style.color = "#ff4444";
-          document.getElementById("registerMessage").textContent = data.error || "Erro no registro";
-        }
-      } catch (error) {
-        document.getElementById("registerMessage").style.color = "#ff4444";
-        document.getElementById("registerMessage").textContent = "Erro de conexão";
-      }
-    });
-  }
 
   // ==================== INICIALIZAÇÃO ====================
 

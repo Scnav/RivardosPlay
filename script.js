@@ -596,17 +596,20 @@
     if (embedModal) return;
     embedModal = document.createElement("div");
     embedModal.id = "embedModal";
-    embedModal.style.cssText = "display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:2000;align-items:center;justify-content:center;";
+    embedModal.style.cssText = "display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:2000;margin:0;padding:0;border:0;overflow:hidden;";
     embedModal.innerHTML = `
-      <div style="position:relative;width:95vw;height:95vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <button id="closeEmbedModal" style="position:absolute;top:10px;right:20px;background:none;border:none;color:white;font-size:3rem;cursor:pointer;z-index:10;">&times;</button>
-        <h2 id="embedGameName" style="color:white;margin-bottom:1rem;text-align:center;"></h2>
-        <div id="embedContainer" style="width:100%;height:calc(100% - 60px);display:flex;align-items:center;justify-content:center;overflow:auto;"></div>
+      <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0;padding:0;border:0;">
+        <button id="closeEmbedModal" style="position:absolute;top:10px;right:20px;background:none;border:none;color:white;font-size:3rem;cursor:pointer;z-index:10;padding:0;width:50px;height:50px;display:flex;align-items:center;justify-content:center;">&times;</button>
+        <h2 id="embedGameName" style="color:white;margin:0;padding:0;text-align:center;font-size:1.2rem;position:absolute;top:15px;"></h2>
+        <div id="embedContainer" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:none;margin:0;padding:0;border:0;"></div>
       </div>
     `;
     document.body.appendChild(embedModal);
     document.getElementById("closeEmbedModal").onclick = closeEmbedModal;
     embedModal.addEventListener("click", (e) => { if (e.target === embedModal) closeEmbedModal(); });
+    
+    // Removido: fullscreen exit listener que fechava o modal
+    // Agora o ESC será gerenciado por um keydown listener dentro de openEmbedModal
   }
 
   function openEmbedModal(embedHtml, gameName) {
@@ -614,10 +617,154 @@
     const container = document.getElementById("embedContainer");
     const title = document.getElementById("embedGameName");
     title.textContent = gameName;
-    const sanitized = embedHtml.replace(/<iframe/gi, '<iframe sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"');
+    
+    // Garantir que o iframe tem as permissões corretas
+    const sanitized = embedHtml
+      .replace(/<iframe/gi, '<iframe allow="fullscreen gamepad pointer-lock" ')
+      .replace(/sandbox="[^"]*"/i, 'sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"');
+    
     container.innerHTML = sanitized;
+    container.style.display = "flex";
     embedModal.style.display = "flex";
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    
+    // Ativar fullscreen
+    const attemptFullscreen = async () => {
+      try {
+        if (embedModal.requestFullscreen) {
+          await embedModal.requestFullscreen({ navigationUI: 'hide' });
+        } else if (embedModal.webkitRequestFullscreen) {
+          embedModal.webkitRequestFullscreen();
+        } else if (embedModal.mozRequestFullScreen) {
+          embedModal.mozRequestFullScreen();
+        } else if (embedModal.msRequestFullscreen) {
+          embedModal.msRequestFullscreen();
+        }
+      } catch (err) {
+        console.log('Fullscreen não disponível:', err);
+      }
+    };
+    
+    attemptFullscreen();
+    
+    // Função para ativar pointer lock no container
+    const activatePointerLock = () => {
+      try {
+        if (container.requestPointerLock) {
+          container.requestPointerLock();
+        } else if (container.mozRequestPointerLock) {
+          container.mozRequestPointerLock();
+        } else if (container.webkitRequestPointerLock) {
+          container.webkitRequestPointerLock();
+        }
+        // Adicionar classe para esconder cursor via CSS
+        embedModal.classList.add('pointer-locked');
+        console.log('🔒 Pointer lock solicitado + cursor oculto');
+      } catch (err) {
+        console.log('Pointer lock não disponível:', err);
+      }
+    };
+    
+    // Função para liberar pointer lock
+    const releasePointerLock = () => {
+      try {
+        if (document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement) {
+          if (document.exitPointerLock) {
+            document.exitPointerLock();
+          } else if (document.mozExitPointerLock) {
+            document.mozExitPointerLock();
+          } else if (document.webkitExitPointerLock) {
+            document.webkitExitPointerLock();
+          }
+          console.log('✓ Pointer lock liberado');
+        }
+        // Remover classe para mostrar cursor via CSS
+        embedModal.classList.remove('pointer-locked');
+        console.log('✓ Cursor restaurado');
+      } catch (err) {
+        console.log('Erro ao liberar pointer lock:', err);
+      }
+    };
+    
+    // Escutar mensagens do iframe
+    const handleGameMessage = (event) => {
+      if (!event.data) return;
+      
+      switch (event.data.type) {
+        case 'gameReady':
+          console.log('📨 Mensagem: Jogo pronto');
+          activatePointerLock();
+          break;
+          
+        case 'gameEnded':
+          console.log('📨 Mensagem: Jogo acabou');
+          releasePointerLock();
+          break;
+          
+        case 'gamePaused':
+          console.log('📨 Mensagem: Jogo pausado');
+          releasePointerLock();
+          break;
+          
+        case 'gameResumed':
+          console.log('📨 Mensagem: Jogo retomado');
+          activatePointerLock();
+          break;
+          
+        default:
+          break;
+      }
+    };
+    
+    window.addEventListener('message', handleGameMessage);
+    
+    // Monitorar mudanças no pointer lock
+    const handlePointerLockChange = () => {
+      const locked = document.pointerLockElement || 
+                     document.mozPointerLockElement || 
+                     document.webkitPointerLockElement;
+      
+      if (locked === container) {
+        console.log('🔒 Pointer lock ativo no container');
+      } else if (!locked) {
+        console.log('🔓 Pointer lock desativado');
+      }
+    };
+    
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    document.addEventListener('mozpointerlockchange', handlePointerLockChange);
+    document.addEventListener('webkitpointerlockchange', handlePointerLockChange);
+    
+    // Fallback: ativar pointer lock ao primeiro clique
+    const handleFirstInteraction = () => {
+      console.log('Primeira interação detectada, ativando pointer lock...');
+      activatePointerLock();
+      container.removeEventListener('click', handleFirstInteraction);
+    };
+    
+    // Ativar ao primeiro clique se o jogo não enviar mensagem
+    container.addEventListener('click', handleFirstInteraction);
+    
+    // Lidar com erros de pointer lock
+    const handlePointerLockError = () => {
+      console.log('⚠️ Erro ao ativar pointer lock');
+    };
+    
+    document.addEventListener('pointerlockerror', handlePointerLockError);
+    document.addEventListener('mozpointerlockerror', handlePointerLockError);
+    document.addEventListener('webkitpointerlockerror', handlePointerLockError);
+    
+    // Listener para ESC: destravar mouse e mostrar cursor (não fecha o jogo)
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' || event.keyCode === 27) {
+        console.log('🔑 ESC pressionado - destravando mouse');
+        releasePointerLock();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscapeKey);
+    
     const game = allGames.find(g => g.name === gameName);
     if (currentUser && game?.id) {
       activeGameSession = {
@@ -630,10 +777,39 @@
 
   async function closeEmbedModal() {
     await persistActiveGameSession();
+    
+    // Liberar Pointer Lock se estiver ativo
+    if (document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement) {
+      try {
+        if (document.exitPointerLock) {
+          document.exitPointerLock();
+        } else if (document.mozExitPointerLock) {
+          document.mozExitPointerLock();
+        } else if (document.webkitExitPointerLock) {
+          document.webkitExitPointerLock();
+        }
+        console.log('Pointer lock liberado');
+      } catch (err) {
+        console.log('Erro ao liberar pointer lock:', err);
+      }
+    }
+    
+    // Sair do fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => console.log('Erro ao sair de fullscreen:', err));
+    } else if (document.webkitFullscreenElement) {
+      document.webkitExitFullscreen();
+    } else if (document.mozFullScreenElement) {
+      document.mozCancelFullScreen();
+    } else if (document.msFullscreenElement) {
+      document.msExitFullscreen();
+    }
+    
     if (embedModal) embedModal.style.display = "none";
     const container = document.getElementById("embedContainer");
     if (container) container.innerHTML = "";
     document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
   }
 
   async function persistActiveGameSession() {

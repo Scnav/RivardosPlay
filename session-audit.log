@@ -91,3 +91,5 @@
 2026-05-16T18:22:56.395Z {"stage":"save_user_ok","email":"iv4ncss@gmail.com","userId":5,"gameId":48,"playedSeconds":30}
 2026-05-19T21:20:11.642Z {"stage":"save_user_ok","email":"admin@teste.com","userId":6,"gameId":47,"playedSeconds":22}
 2026-05-19T21:20:38.227Z {"stage":"save_user_ok","email":"admin@teste.com","userId":6,"gameId":77,"playedSeconds":9}
+2026-05-19T21:21:28.401Z {"stage":"save_user_ok","email":"admin@teste.com","userId":6,"gameId":87,"playedSeconds":17}
+2026-05-19T21:21:41.694Z {"stage":"save_user_ok","email":"admin@teste.com","userId":6,"gameId":36,"playedSeconds":8}

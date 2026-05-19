@@ -88,7 +88,7 @@ function sanitizeEmbed(embed) {
   if (!match) return '';
   const src = match[2];
   if (!isValidHttpUrl(src)) return '';
-  return `<iframe src="${src}" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" referrerpolicy="no-referrer" loading="lazy" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`;
+  return `<iframe src="${src}" allow="fullscreen; gamepad; pointer-lock" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" referrerpolicy="no-referrer" loading="lazy" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`;
 }
 
 const db = new sqlite3.Database('./rivardosplay.db', (err) => {
@@ -758,15 +758,20 @@ app.get('/*.html', (req, res, next) => {
 
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/index.html', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
-app.get('/login', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
-app.get('/login.html', (req, res) => { res.sendFile(path.join(__dirname, 'login.html')); });
+app.get('/login', (req, res) => { res.sendFile(path.join(__dirname, 'rp.html')); });
+app.get('/login.html', (req, res) => { res.sendFile(path.join(__dirname, 'rp.html')); });
+app.get('/rp', (req, res) => { res.sendFile(path.join(__dirname, 'rp.html')); });
+app.get('/rp.html', (req, res) => { res.sendFile(path.join(__dirname, 'rp.html')); });
 app.get('/register', (req, res) => { res.redirect('/login'); });
-app.get('/register.html', (req, res) => { res.sendFile(path.join(__dirname, 'register.html')); });
+app.get('/register.html', (req, res) => { res.sendFile(path.join(__dirname, 'rpr.html')); });
+app.get('/rpr', (req, res) => { res.sendFile(path.join(__dirname, 'rpr.html')); });
+app.get('/rpr.html', (req, res) => { res.sendFile(path.join(__dirname, 'rpr.html')); });
 app.get('/games', (req, res) => { res.sendFile(path.join(__dirname, 'games.html')); });
-app.get('/library', (req, res) => { res.sendFile(path.join(__dirname, 'library.html')); });
 app.get('/news', (req, res) => { res.sendFile(path.join(__dirname, 'news.html')); });
-app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'admin.html')); });
-app.get('/admin.html', (req, res) => { res.sendFile(path.join(__dirname, 'admin.html')); });
+app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'rpa.html')); });
+app.get('/admin.html', (req, res) => { res.sendFile(path.join(__dirname, 'rpa.html')); });
+app.get('/rpa', (req, res) => { res.sendFile(path.join(__dirname, 'rpa.html')); });
+app.get('/rpa.html', (req, res) => { res.sendFile(path.join(__dirname, 'rpa.html')); });
 
 app.use((req, res) => { res.status(404).json({ error: 'Página não encontrada' }); });
 
